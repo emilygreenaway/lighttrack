@@ -1,0 +1,314 @@
+<html>
+<head>
+    <title>Light Track Creator</title>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    
+    <script src="js/jshue.js"></script>
+    <script src="js/vis.min.js"></script>
+    <script src="js/sweetalert.min.js"></script>
+    <script src="js/main.js"></script> <!-- Does nothing for now -->
+    <link href="css/vis.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/sweetalert.css" rel="stylesheet" type="text/css" />
+    <link href="css/site.css" media="screen" rel="stylesheet" type="text/css">
+
+    <style>
+    body, html {
+      font-family: arial, sans-serif;
+      font-size: 11pt;
+    }
+
+    textarea {
+      width: 800px;
+      height: 200px;
+    }
+
+    .buttons {
+      margin: 20px 0;
+    }
+
+    .buttons input {
+      padding: 10px;
+    }
+  </style>
+
+</head>
+<body>
+<script>
+
+// Stuff to do with controlling the lights
+
+var hue = jsHue();
+var bridgeIP;
+
+hue.discover(
+    function(bridges) {
+        if(bridges.length === 0) {
+            console.log('No bridges found. :(');
+        }
+        else {
+            bridges.forEach(function(b) {
+                //console.log('Bridge found at IP address %s.', b.internalipaddress);
+                bridgeIP = b.internalipaddress;
+                //console.log("BridgeIP = ",bridgeIP);
+            });
+        }
+    },
+    function(error) {
+        console.error(error.message);
+    }
+);
+
+var bridge = hue.bridge("192.168.1.64");
+
+// create user account (requires link button to be pressed)
+bridge.createUser('foo application', function(data) {
+    // extract bridge-generated username from returned data
+    //var username = data[0].success.username;
+
+    //.log('New username:', username);
+
+    // instantiate user object with username
+    //var user = bridge.user(username);
+
+});
+
+// get light info
+//user.getLights(function(data){console.log("data",data)})
+
+var user = bridge.user('3261a25e67af7271a371c723c12814b');
+
+function setColour(time,hue) {
+	//setTimeout(function(){user.setLightState(6, {"on":true,"transitiontime":0, "sat":255, "bri":255, "hue":hue})},time);
+  setTimeout(function(){user.setGroupState(0, {"on":true,"transitiontime":0, "sat":255, "bri":255,"hue":hue})},time);
+}
+
+// jQuery
+
+$(document).ready(function() {
+
+    $('#run').click(function() {
+      startLightTrack();
+    });
+
+});
+
+function startLightTrack(){
+    var txtData = document.getElementById('data');
+    var data = JSON.parse(txtData.value);
+
+    for (i=0;i<data.length;i++){
+
+        setColour(parseInt(data[i].start), parseInt(data[i].content));
+    }
+}
+</script>
+
+<div id="visualization"></div>
+
+<div class="buttons">
+  <input type="button" id="load" value="&uarr; Load" title="Load data from textarea into the Timeline">
+  <input type="button" id="save" value="&darr; Save" title="Save data from the Timeline into the textarea">
+</div>
+
+<textarea id="data">
+[
+]
+</textarea>
+
+<div class="buttons">
+    <button type="button" id="run">Run Light Track</button>
+</div>
+
+<div id="hslpicker">
+      <div class="frame">
+        <div id='tiles' class='color-tiles'>
+          <div class='foreground tile selected' data-name='foreground' title='Adjust foreground tile'>
+            <div class='foreground-color tile'></div>
+          </div>
+          <div class='background tile' data-name='background' title='Adjust background tile'>
+            <div class='background-color tile'></div>
+          </div>
+          <div class='bgs'>
+            <div class='bg none' title='Transparent' data-color='[360,100,100,0]'></div>
+            <div class='bg light' title='White' data-color='[360,100,100,1]'></div>
+            <div class='bg dark' title='Black' data-color='[0,0,0,1]'></div>
+            <div class='bg random' title='Random' data-color='random'></div>
+          </div>
+          <div class='expose' title='show/hide background tile'></div>
+        </div>
+        <div id='picker' class='sliders'>
+          <div class="slider"><div id='h-slider'><div class='handle'></div></div></div> <input id='h'>
+          <div class='hide'>
+            <div class="slider"><div id='s-slider'><div class='handle'></div></div></div> <input id='s'>
+            <div class="slider"><div id='l-slider'><div class='handle'></div></div></div> <input id='l'>
+            <div class="slider"><div id='a-slider'><div class='handle'></div></div></div> <input id='a'>
+          </div>
+        </div>
+      </div>
+      <div class='color-inputs'>
+        <input id="hsla" spellcheck="false" type="text">
+      </div>
+    </div>
+
+<input type='text' id='hueValue'/>
+
+<iframe src="https://www.youtube.com/embed/Vo6kDWkXDPY?enablejsapi=1" frameborder="0" allowfullscreen id="video"></iframe>
+
+<script>
+
+  // Youtube API
+
+  // https://developers.google.com/youtube/iframe_api_reference
+
+// global variable for the player
+var player;
+
+// this function gets called when API is ready to use
+function onYouTubePlayerAPIReady() {
+  // create the global player from the specific iframe (#video)
+  player = new YT.Player('video', {
+    events: {
+      // call this function when player is ready to use
+      'onReady': onPlayerReady
+    }
+  });
+}
+
+function onPlayerReady(event) {
+  
+  // bind events
+  var playButton = document.getElementById("run");
+  playButton.addEventListener("click", function() {
+    player.seekTo(0);
+    player.playVideo();
+  });
+  
+  // var pauseButton = document.getElementById("pause-button");
+  // pauseButton.addEventListener("click", function() {
+  //   player.pauseVideo();
+  // });
+  
+}
+
+// Inject YouTube API script
+var tag = document.createElement('script');
+tag.src = "http://www.youtube.com/player_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+  // Stuff to do with making the light track
+
+  var txtData = document.getElementById('data');
+  var btnLoad = document.getElementById('load');
+  var btnSave = document.getElementById('save');
+
+  btnLoad.onclick = loadData;
+  btnSave.onclick = saveData;
+
+  // Create an empty DataSet.
+  // This DataSet is used for two way data binding with the Timeline.
+  var items = new vis.DataSet();
+
+  // Create a timeline
+  var container = document.getElementById('visualization');
+
+  // Configuration and methods
+  var options = {
+    editable: true,
+
+    showCurrentTime: false,
+
+    start: 0,
+
+    onAdd: function (item, callback) {
+      prettyPrompt('Add event', 'Colour:', item.content, function (value) {
+        if (value) {
+          item.content = value;
+          item.style = "background-color:"+$('.foreground-color.tile').css('backgroundColor');
+          callback(item); // send back adjusted new item
+        }
+        else {
+          callback(null); // cancel item creation
+        }
+      });
+    },
+
+    onUpdate: function (item, callback) {
+      prettyPrompt('Update colour from '+item.content, 'New colour:', $('#hueValue').val(), function (value) {
+        if (value) {
+          item.content = value;
+          item.style = "background-color:"+$('.foreground-color.tile').css('backgroundColor');
+          callback(item); // send back adjusted item
+        }
+        else {
+          callback(null); // cancel updating the item
+        }
+      });
+    },
+
+    onRemove: function (item, callback) {
+      prettyConfirm('Remove event', 'Do you really want to remove event ' + item.content + '?', function (ok) {
+        if (ok) {
+          callback(item); // confirm deletion
+        }
+        else {
+          callback(null); // cancel deletion
+        }
+      });
+    }
+  };
+
+  // Create the timeline
+  var timeline = new vis.Timeline(container, items, options);
+
+  // Load the initial data
+  loadData();
+
+  // Functions
+
+  function loadData () {
+    var data = JSON.parse(txtData.value);
+    items.clear();
+    items.add(data);
+    timeline.fit();
+  }
+  
+  function saveData() {
+    var data = items.get();
+    txtData.value = JSON.stringify(data, null, 2);
+  }
+
+  function prettyConfirm(title, text, callback) {
+    swal({
+      title: title,
+      text: text,
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55"
+    }, callback);
+  }
+
+  function prettyPrompt(title, text, inputValue, callback) {
+    swal({
+      title: title,
+      text: text,
+      type: 'input',
+      showCancelButton: true,
+      inputValue: inputValue
+    }, callback);
+  }
+
+</script>
+
+<script src="js/hslpicker.js" type="text/javascript"></script>
+<script stype="text/javascript">
+  $(document).ready(function(){ 
+    site = require('site')()
+  });
+</script>
+
+</body>
+</html>
